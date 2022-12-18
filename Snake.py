@@ -29,16 +29,20 @@ gameOn = True
 while gameOn:
     for event in pygame.event.get():
         if event.type == QUIT:
-            gameOn = False
+            quit()
         elif event.type == KEYDOWN:
             if event.key == K_w and direction[1] == 0:  # If pressing w and direction isn't already up or down
                 direction = [0, -size]
+                break
             if event.key == K_a and direction[0] == 0:  # If pressing a and direction isn't already right or left
                 direction = [-size, 0]
+                break
             if event.key == K_s and direction[1] == 0:  # If pressing s and direction isn't already up or down
                 direction = [0, size]
+                break
             if event.key == K_d and direction[0] == 0:  # If pressing d and direction isn't already right or left
                 direction = [size, 0]
+                break
     screen.fill((0, 0, 0))
 
     head[0] += direction[0]
@@ -47,16 +51,20 @@ while gameOn:
     snake.insert(0, [head[0], head[1]])
     snake.pop(-1)
 
-    # Drawing the head before the rest of the body
-    pygame.draw.rect(screen, (0, 0, 255), head_rect)
-    for i in snake[1:]:
-        if head == i:
-            gameOn = False
-        pygame.draw.rect(screen, (0, 0, 255), (i[0], i[1], size, size))
+    # Drawing the snake
+    for idx, segment in enumerate(snake):
+        pygame.draw.rect(screen, (0, 0, 255), (segment[0], segment[1], size, size))
 
+    # Checking collisions with itself
+    for segment in snake[1:]:
+        if segment == head:
+            gameOn = False
+
+    # Checking collisions with the wall
     if head[0] < 0 or head[0] > w - size or head[1] < 0 or head[1] > h - size:
         gameOn = False
 
+    # Checking collisions with the food
     if head_rect.colliderect(food_rect):
         score += 1
         speed += 1

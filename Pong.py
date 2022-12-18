@@ -8,14 +8,15 @@ pygame.init()
 def clamp(val, min_val, max_val):
     return max(min(val, max_val), min_val)
 
-def sigmoid(val):
-    return 1 / (1 + math.exp(-val))
-
 width = 1000
 height = 750
 bg_color = (0, 0, 255)
 window = pygame.display.set_mode((width, height))
 window.fill(bg_color)
+
+font_color = (0, 255, 0)
+font_size = 75
+font = pygame.font.Font(None, font_size)
 
 color = (255, 0, 0)
 
@@ -47,6 +48,7 @@ right = pygame.Rect(width * 5 / 6, height / 2, paddle_width, paddle_height)
 right_dy = 0
 
 gameOn = True
+
 while gameOn:
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -86,25 +88,25 @@ while gameOn:
         ball_dir_y *= -1
 
     if ball.x <= 0:
-        right_score += 1
         ball_dir_x *= -1
+        right_score += 1
         ball.x = width/2
         ball.y = height/2
         ball_speed = speed_init
 
     elif ball.x - ball_size >= width:
-        left_score += 1
         ball_dir_x *= -1
+        left_score += 1
         ball.x = width/2
         ball.y = height/2
         ball_speed = speed_init
 
     if ball.colliderect(left) and collide_buffer == 0:
         ball_dir_x *= -1
-        ball_speed += speed_init / 10
+        ball_speed = clamp(ball_speed + speed_init / 10, speed_init, speed_init * 1.5)
         ball_mid = ball.y + ball_size / 2
         paddle_mid = left.y + paddle_height / 2
-        distance = clamp(abs(paddle_mid - ball_mid), paddle_height / 8, paddle_height / 3)
+        distance = clamp(abs(paddle_mid - ball_mid), paddle_height / 10, paddle_height / 3)
         angle = distance / (paddle_height / 2) * (math.pi / 2)
         ball_dx = math.cos(angle)
         ball_dy = math.sin(angle)
@@ -112,17 +114,22 @@ while gameOn:
 
     elif ball.colliderect(right) and collide_buffer == 0:
         ball_dir_x *= -1
-        ball_speed += speed_init / 10
+        ball_speed = clamp(ball_speed + speed_init / 10, speed_init, speed_init * 1.5)
         ball_mid = ball.y + ball_size / 2
         paddle_mid = right.y + paddle_height / 2
-        distance = clamp(abs(paddle_mid - ball_mid), paddle_height / 8, paddle_height / 3)
+        distance = clamp(abs(paddle_mid - ball_mid), paddle_height / 10, paddle_height / 3)
         angle = distance / (paddle_height / 2) * (math.pi / 2)
         ball_dx = math.cos(angle)
         ball_dy = math.sin(angle)
         collide_buffer = 100
 
+    left_score_img = font.render(str(left_score), False, font_color)
+    right_score_img = font.render(str(right_score), False, font_color)
+
     pygame.draw.rect(window, color, ball)
     pygame.draw.rect(window, color, left)
     pygame.draw.rect(window, color, right)
+    window.blit(left_score_img, (width / 15, height / 10))
+    window.blit(right_score_img, (14 * width / 15 - font_size, height / 10))
 
     pygame.display.update()
