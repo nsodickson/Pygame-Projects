@@ -13,6 +13,7 @@ height = 750
 bg_color = (0, 0, 255)
 window = pygame.display.set_mode((width, height))
 window.fill(bg_color)
+fps = pygame.time.Clock()
 
 font_color = (0, 255, 0)
 font_size = 75
@@ -21,7 +22,7 @@ font = pygame.font.Font(None, font_size)
 color = (255, 0, 0)
 
 # Adjust based on the machine
-speed_init = 4
+speed_init = 5
 
 # Creating the ball
 ball_size = 25
@@ -131,5 +132,7 @@ while gameOn:
     pygame.draw.rect(window, color, right)
     window.blit(left_score_img, (width / 15, height / 10))
     window.blit(right_score_img, (14 * width / 15 - font_size, height / 10))
+
+    fps.tick(100)
 
     pygame.display.update()
