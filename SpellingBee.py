@@ -1,0 +1,154 @@
+import pygame
+from pygame.locals import *
+import string
+import random
+import math
+
+# Initializing Pygame and Pygame Window
+pygame.init()
+w, h = 500, 500
+win = pygame.display.set_mode((w, h))
+font = pygame.font.Font(None, 50)
+large_font = pygame.font.Font(None, 60)
+small_font = pygame.font.Font(None, 30)
+clock = pygame.time.Clock()
+bg_color = (255, 255, 255)
+poly_color = (255, 174, 66)
+font_color = (0, 0, 0)
+polygons = [[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], 
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], 
+            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]]
+circles = [(250, 250),
+           (250, 150),
+           (325, 200),
+           (325, 300),
+           (250, 350),
+           (175, 300),
+           (175, 200)]
+circle_radius = 40
+button = pygame.Rect(350, 15, 125, 30)
+
+# Integer and Boolean flags for multi-frame actions
+delete = False
+delete_timer = 0
+display_timer = 0
+message = ""
+
+# Defining helper functions
+def dist(p1, p2):
+    return math.sqrt((p2[1] - p1[1]) ** 2 + (p2[0] - p1[0]) ** 2)
+
+def genLetters(key, num_letters):
+    assert num_letters < len(key)
+    return random.sample(key, num_letters)
+
+def isPanogram(key, letter_queue):
+    for letter in key:
+        if letter not in letter_queue:
+            return False
+    return True
+
+# Obtain master word and letter list
+with open("words_alpha.txt") as f:
+    words = f.read().split("\n")
+vowels = "aeiou"
+consonants = "bcdfghjklmnpqrstvwxyz"
+
+while True:
+    gameOn = True
+    
+    letters = genLetters(vowels, 3) + genLetters(consonants, 4)
+    random.shuffle(letters)
+    
+    letter_queue = ""
+    word_queue = []
+    score = 0
+    
+    while gameOn:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                exit()
+                
+            elif event.type == TEXTINPUT:
+                if event.text.lower() in letters:
+                    letter_queue += event.text.lower()
+                    
+            elif event.type == KEYDOWN:
+                if event.key == K_BACKSPACE:
+                    letter_queue = letter_queue[0:-1]
+                    delete = True
+                    delete_timer = 10
+                elif event.key == K_RETURN:
+                    if letter_queue in word_queue:
+                        message = "Already Found"
+                    elif letters[0] not in letter_queue:
+                        message = "Missing Center Letter"
+                    elif len(letter_queue) < 4:
+                        message = "Too Short"
+                    elif letter_queue in words:
+                        word_queue.append(letter_queue)
+                        if isPanogram(letters, letter_queue):
+                            message = "Panogram!"
+                            score += 5 * len(letter_queue)
+                        else:
+                            message = "+"
+                            score += len(letter_queue)
+                    else:
+                        message = "Not a Word"
+                    display_timer = 10
+                    letter_queue = ""
+                    
+            elif event.type == KEYUP:
+                if event.key == K_BACKSPACE:
+                    delete = False
+            
+            elif event.type == MOUSEBUTTONDOWN:
+                for letter, center in zip(letters, circles):
+                    if dist(center, event.pos) < circle_radius:
+                        letter_queue += letter
+                if button.collidepoint(event.pos):
+                    gameOn = False
+        
+        win.fill(bg_color)
+    
+        if delete:
+            if delete_timer > 0:
+                delete_timer -= 1
+            else:
+                letter_queue = letter_queue[0:-1]
+                
+        pygame.draw.rect(win, poly_color, button)
+        button_surf = small_font.render("New Game", True, font_color)   
+        button_size = small_font.size("New Game")
+        win.blit(button_surf, (350 + (125 - button_size[0]) / 2, 15 + button_size[1] / 2))
+                
+        score_surf = font.render(f"Score: {score}", True, font_color)
+        win.blit(score_surf, (15, 15))
+        
+        letter_queue_surf = font.render(letter_queue, True, font_color)
+        letter_queue_size = font.size(letter_queue)
+        win.blit(letter_queue_surf, (250 - letter_queue_size[0] / 2, 50))
+        
+        for letter, center in zip(letters, circles):
+            pygame.draw.circle(win, poly_color, center, circle_radius)
+            letter_surf = font.render(letter, True, font_color)
+            letter_size = font.size(letter)
+            win.blit(letter_surf, (center[0] - letter_size[0] / 2, center[1] - letter_size[1] / 2))
+         
+         # Code to display a message after entering a word
+        if display_timer > 0:
+            message_surf = large_font.render(message, False, font_color)
+            message_surf.set_alpha(255 - 25.5 * (10 - display_timer))
+            message_size = large_font.size(message)
+            win.blit(message_surf, (250 - message_size[0] / 2, 400))
+            display_timer -= 1
+            
+        pygame.display.update()
+        
+        clock.tick(10)
+        
