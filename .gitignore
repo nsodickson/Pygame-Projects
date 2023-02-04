@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 # Python Virtual Environment
 /venv
+
+# Developer only file for spelling bee
+/words_to_remove

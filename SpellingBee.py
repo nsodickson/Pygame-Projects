@@ -7,6 +7,7 @@ import math
 pygame.init()
 w, h = 1000, 500
 win = pygame.display.set_mode((w, h))
+pygame.display.set_caption("Spelling Bee")
 font = pygame.font.Font(None, 50)
 large_font = pygame.font.Font(None, 60)
 small_font = pygame.font.Font(None, 30)
@@ -97,7 +98,7 @@ while True:
                 if event.key == K_BACKSPACE:
                     letter_queue = letter_queue[0:-1]
                     delete = True
-                    delete_timer = 10
+                    delete_timer = 5
                 
                 # Handling checking a word
                 elif event.key == K_RETURN:
@@ -111,7 +112,7 @@ while True:
                         word_queue.append(letter_queue)
                         if isPanogram(letters, letter_queue):
                             message = "Pangram!"
-                            score += 5 * len(letter_queue)
+                            score += 3 * len(letter_queue)
                         else:
                             message = "+"
                             score += len(letter_queue)
@@ -164,14 +165,15 @@ while True:
             win.blit(letter_surf, (center[0] - letter_size[0] / 2, center[1] - letter_size[1] / 2))
         
         # Drawing the already guessed words
-        x, y, max_length = 0, 0, 0
+        pygame.draw.rect(win, font_color, (505, 5, 490, 490), width=5)
+        x, y, max_length = 20, 20, 0
         for idx, word in enumerate(word_queue):
             max_length = max(small_font.size(word)[0], max_length)
             word_surf = small_font.render(word, False, font_color)
             win.blit(word_surf, (x + 500, y))
             if y >= 450:
                 x += max_length + 15
-                y = 0
+                y = 20
                 max_length = 0
             else:
                 y += 30
