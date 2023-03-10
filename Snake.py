@@ -2,91 +2,111 @@ import pygame
 from pygame.locals import *
 import random
 
+"""
+*Large Project
+Difficulty: 8/10
+Teaches: 
+    - Most pygame concepts
+    - Variables
+    - Lists
+    - While loops
+    - For loops
+    - Conditionals 
+"""
+
+# Creatng the window and the grid
 pygame.init()
-w, h = 750, 750
+
+# Adjust width and height as needed for computer display
+w, h = 600, 600
+grid_w, grid_h = 50, 50
+size_w, size_h = w // grid_w, h // grid_h
 screen = pygame.display.set_mode((w, h))
-fps = pygame.time.Clock()
-
 font = pygame.font.SysFont(None, 25)
+
+# Creating the snake
+head = [25, 25]
+snake = [[24, 25], [23, 25], [22, 25]]
+direction = "RIGHT"
 speed = 0
-size = w / 50
-head = [w / 2, h / 2]
-head_rect = pygame.Rect(head[0], head[1], size, size)
-snake = [[w / 2, h / 2], [w / 2 + size * 1, h / 2], [w / 2 + size * 2, h / 2], [w / 2 + size * 3, h / 2]]
-direction = [-size, 0]
 
-# Directions
-# [1, 0] --> Right
-# [-1, 0] --> Left
-# [0, 1] --> Down
-# [0, -1] --> Up
-
+# Creating the food and the score
+food = [random.randint(0, grid_w - 1), random.randint(0, grid_h - 1)]
 score = 0
-food = [random.randint(0, w) // size * size, random.randint(0, h) // size * size]
-food_rect = pygame.Rect(food[0], food[1], size, size)
 
 gameOn = True
+gameOver = False
 while gameOn:
     for event in pygame.event.get():
         if event.type == QUIT:
-            quit()
+            gameOn = False
         elif event.type == KEYDOWN:
-            if event.key == K_w and direction[1] == 0:  # If pressing w and direction isn't already up or down
-                direction = [0, -size]
+            if event.key == K_w and direction != "DOWN":
+                direction = "UP"
                 break
-            if event.key == K_a and direction[0] == 0:  # If pressing a and direction isn't already right or left
-                direction = [-size, 0]
+            if event.key == K_a and direction != "RIGHT":
+                direction = "LEFT"
                 break
-            if event.key == K_s and direction[1] == 0:  # If pressing s and direction isn't already up or down
-                direction = [0, size]
+            if event.key == K_s and direction != "UP":
+                direction = "DOWN"
                 break
-            if event.key == K_d and direction[0] == 0:  # If pressing d and direction isn't already right or left
-                direction = [size, 0]
+            if event.key == K_d and direction != "LEFT":
+                direction = "RIGHT"
                 break
-    screen.fill((0, 0, 0))
 
-    head[0] += direction[0]
-    head[1] += direction[1]
-    head_rect = pygame.Rect(head[0], head[1], size, size)
+    for i in range(grid_w):
+        for n in range(grid_h):
+            if (i + n) % 2 == 0:
+                pygame.draw.rect(screen, (125, 195, 145), (n * size_w, i * size_h, size_w, size_h))
+            else:
+                pygame.draw.rect(screen, (90, 195, 100), (n * size_w, i * size_h, size_w, size_h))
+
     snake.insert(0, [head[0], head[1]])
     snake.pop(-1)
 
-    # Drawing the snake
-    for idx, segment in enumerate(snake):
-        pygame.draw.rect(screen, (0, 0, 255), (segment[0], segment[1], size, size))
+    if direction == "UP":
+        head[1] -= 1
+    elif direction == "LEFT":
+        head[0] -= 1
+    elif direction == "DOWN":
+        head[1] += 1
+    elif direction == "RIGHT":
+        head[0] += 1
 
-    # Checking collisions with itself
-    for segment in snake[1:]:
-        if segment == head:
+    # Drawing the head before the rest of the body
+    pygame.draw.rect(screen, (0, 0, 255), (head[0] * size_w, head[1] * size_h, size_w, size_h))
+    for i in snake:
+        if head == i:
             gameOn = False
+            gameOver = True
+        pygame.draw.rect(screen, (0, 0, 255), (i[0] * size_w, i[1] * size_h, size_w, size_h))
 
-    # Checking collisions with the wall
-    if head[0] < 0 or head[0] > w - size or head[1] < 0 or head[1] > h - size:
+    if head[0] < 0 or head[0] > grid_w - 1 or head[1] < 0 or head[1] > grid_h - 1:
         gameOn = False
+        gameOver = True
 
-    # Checking collisions with the food
-    if head_rect.colliderect(food_rect):
+    if head == food:
         score += 1
         speed += 1
-        food = [random.randint(0, w) // size * size, random.randint(0, h) // size * size]
-        food_rect = pygame.Rect(food[0], food[1], size, size)
-        snake.append([snake[-1][0] - direction[0], snake[-1][1] - direction[1]])
+        food = [random.randint(0, grid_w - 1), random.randint(0, grid_h - 1)]
+        end = snake[-1]
+        snake.append([end[0], end[1]])
 
-    pygame.draw.rect(screen, (0, 255, 0), food_rect)
+    pygame.draw.rect(screen, (255, 0, 0), (food[0] * size_w, food[1] * size_h, size_w, size_h))
 
     score_surf = font.render(f"Score: {score}", False, (255, 0, 0))
     screen.blit(score_surf, (5, 5))
 
     pygame.display.flip()
+    
+    pygame.time.wait(max(50, 80 - 2 * score))
 
-    fps.tick(15 + speed//5)
 
-gameOn = True
-while gameOn:
+while gameOver:
     for event in pygame.event.get():
         if event.type == QUIT:
-            gameOn = False
-    font = pygame.font.SysFont(None, 150, (255, 0, 0))
+            gameOver = False
+    font = pygame.font.SysFont(None, 100, (255, 0, 0))
     game_over = font.render("Game Over", False, (255, 0, 0))
     size = font.size("Game Over")
     screen.blit(game_over, (w / 2 - size[0] / 2, h / 2 - size[1] / 2))

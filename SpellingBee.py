@@ -112,9 +112,12 @@ while True:
                         word_queue.append(letter_queue)
                         if isPanogram(letters, letter_queue):
                             message = "Pangram!"
-                            score += 3 * len(letter_queue)
-                        else:
+                            score += len(letter_queue) + 7
+                        elif len(letter_queue) == 4:
                             message = "+"
+                            score += 1
+                        else:
+                            message = "+" 
                             score += len(letter_queue)
                     else:
                         message = "Not a Word"
