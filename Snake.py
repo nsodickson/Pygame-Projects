@@ -2,18 +2,6 @@ import pygame
 from pygame.locals import *
 import random
 
-"""
-*Large Project
-Difficulty: 8/10
-Teaches: 
-    - Most pygame concepts
-    - Variables
-    - Lists
-    - While loops
-    - For loops
-    - Conditionals 
-"""
-
 # Creatng the window and the grid
 pygame.init()
 
