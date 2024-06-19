@@ -1,2 +1,2 @@
 import os
-os.system("pip3 install pygame")
+os.system("pip install pygame")

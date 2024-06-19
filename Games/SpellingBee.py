@@ -73,7 +73,6 @@ with open("words_large.txt") as f:
     word_key = f.read().split("\n")
 vowels = "aeiou"
 consonants = "bcdfghjklmnpqrstvwxyz"
-
 while True:
     gameOn = True
     
