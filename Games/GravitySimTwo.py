@@ -99,6 +99,7 @@ window = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 fps = 100
 paused = False
+click_frame = False
 gravity_on = True
 past_pos = pygame.Vector2(0, 0)
 
@@ -110,8 +111,8 @@ balls = pygame.sprite.Group()
 star = Ball(400, 400, 10000, 50)
 randomness = 0
 planets = []
-for i in range(10000):
-    r = random.random() * (width - star.radius) + star.radius
+for i in range(250):
+    r = random.random() * (width / 2 - star.radius) + star.radius
     theta = random.random() * 2 * math.pi
     planet = Ball(r * math.cos(theta) + width / 2, r * math.sin(theta) + height / 2, 1, 1)
     vel = (planet.pos - star.pos).rotate(90)
@@ -159,12 +160,14 @@ while game_on:
                 fps = 500
             elif event.key == K_SPACE:
                 gravity_on = not gravity_on
+            elif event.key == K_RETURN:
+                if paused:
+                    click_frame = True
         elif event.type == KEYUP:
             if event.key == K_LEFT or event.key == K_RIGHT:
                 fps = 100
     
-    if not paused:
-
+    if not paused or click_frame:
         start = time.perf_counter()
         handleMerges()
         merge_times.append(time.perf_counter() - start)
@@ -175,6 +178,7 @@ while game_on:
             gravity_times.append(time.perf_counter() - start)
             
         balls.update()
+        click_frame = False
 
     # Drawing the Schwarzschild Radius of the star
     # pygame.draw.circle(window, (50, 50, 50, 0.5), star.pos, 2 * G * star.mass / C ** 2, width=5)
