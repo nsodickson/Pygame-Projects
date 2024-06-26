@@ -42,7 +42,7 @@ class TopPipe(pygame.sprite.Sprite):
         super(TopPipe, self).__init__()
 
         self.pos = pygame.Vector2(x, y)
-        self.vel = pygame.Vector2(-0.5, 0)
+        self.vel = pygame.Vector2(-speed, 0)
         self.h = h
 
         pipe_base = pygame.image.load("Assets/pipe-base-top.png")
@@ -67,7 +67,7 @@ class BottomPipe(pygame.sprite.Sprite):
         super(BottomPipe, self).__init__()
 
         self.pos = pygame.Vector2(x, y)
-        self.vel = pygame.Vector2(-0.5, 0)
+        self.vel = pygame.Vector2(-speed, 0)
         self.h = h
 
         pipe_base = pygame.image.load("Assets/pipe-base-bottom.png")
@@ -88,17 +88,22 @@ class BottomPipe(pygame.sprite.Sprite):
 
 width, height = 1200, 800
 window = pygame.display.set_mode((width, height))
-bg_color = (173, 216, 230)
+bg_img = pygame.image.load("Assets/flappy-bg.jpeg")
+bg_img = pygame.transform.scale(bg_img, (width, height))
+bg_x = 0
+
 font_big = pygame.font.Font(None, 80)
 font_med = pygame.font.Font(None, 60)
 clock = pygame.time.Clock()
 pipe_delay = 2
 fps = 500
+speed = 0.5
 gravity = 0.01
 max_score = 0
 
 def run():
     global max_score
+    global bg_x
 
     score = 0
     ticks = 0
@@ -107,7 +112,6 @@ def run():
 
     game_on = True
     while game_on:
-        window.fill(bg_color)
         for event in pygame.event.get():
             if event.type == QUIT:
                 quit()
@@ -125,7 +129,7 @@ def run():
 
         if bird.pos.y + bird.h > height:
             game_on = False
-        elif bird.pos.y < 0:
+        elif bird.pos.y + bird.h / 2 < 0:
             game_on = False
         
         for pipe in pipes:
@@ -140,6 +144,9 @@ def run():
             if pipe.pos.x + 80 < 0:
                 pipes.remove(pipe)
 
+        bg_x = (bg_x - speed * 1.1) % width
+        window.blit(bg_img, (bg_x, 0))
+        window.blit(bg_img, (bg_x - width, 0))
         bird.draw(window)
         pipes.draw(window)
         font_surf = font_big.render(str(score), True, (255, 0, 0))

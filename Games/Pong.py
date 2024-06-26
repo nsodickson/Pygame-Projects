@@ -21,7 +21,6 @@ font = pygame.font.Font(None, font_size)
 
 color = (255, 0, 0)
 
-# Adjust based on the machine
 speed_init = 5
 
 # Creating the ball
@@ -98,8 +97,8 @@ while gameOn:
     elif ball.x - ball_size >= width:
         ball_dir_x *= -1
         left_score += 1
-        ball.x = width/2
-        ball.y = height/2
+        ball.x = width / 2
+        ball.y = height / 2
         ball_speed = speed_init
 
     if ball.colliderect(left) and collide_buffer == 0:

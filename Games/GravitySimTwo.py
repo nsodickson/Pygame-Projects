@@ -3,6 +3,8 @@ from pygame.locals import *
 import math
 import random
 import time
+import matplotlib.pyplot as plt
+import numpy as np
 
 pygame.init()
 
@@ -82,65 +84,76 @@ def handleGravity():
             satellite = satellites[n]
             radius = dist(center.pos, satellite.pos)
             
-            mag1 = G * center.mass / radius ** 2
-            dir1 = center.pos - satellite.pos
-            dir1.scale_to_length(mag1)
-            satellite.vel += dir1
-            satellite.vel.scale_to_length(min(C, satellite.vel.magnitude()))
+            mag = G * center.mass * satellite.mass / radius ** 2
 
-            mag2 = G * satellite.mass / radius ** 2
+            dir1 = center.pos - satellite.pos
+            dir1.scale_to_length(mag / satellite.mass)
+            satellite.vel += dir1
+            if satellite.vel.magnitude() > C:
+                satellite.vel.scale_to_length(C)
+
             dir2 = satellite.pos - center.pos
-            dir2.scale_to_length(mag2)
+            dir2.scale_to_length(mag / center.mass)
             center.vel += dir2
-            center.vel.scale_to_length(min(C, center.vel.magnitude()))
+            if center.vel.magnitude() > C:
+                center.vel.scale_to_length(C)
 
 width, height = 800, 800
 window = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 fps = 100
-paused = False
-click_frame = False
-gravity_on = True
 past_pos = pygame.Vector2(0, 0)
 
+# Flags
+paused = False
+clicked = False
+click_frame = False
+gravity_on = True
+trails = False
+
+# Constants
 G = 1
-C = 100000000
+C = 1e20
 
 balls = pygame.sprite.Group()
 
 star = Ball(400, 400, 10000, 50)
-randomness = 0
 planets = []
-for i in range(250):
-    r = random.random() * (width / 2 - star.radius) + star.radius
+for i in range(999):
+    r = math.sqrt(random.random()) * (width / 2 - star.radius) + star.radius
     theta = random.random() * 2 * math.pi
     planet = Ball(r * math.cos(theta) + width / 2, r * math.sin(theta) + height / 2, 1, 1)
     vel = (planet.pos - star.pos).rotate(90)
-    vel.scale_to_length(min(C, math.sqrt(G * star.mass / dist(planet.pos, star.pos)) + random.randint(-randomness, randomness)))
+    vel.scale_to_length(math.sqrt(G * star.mass / dist(planet.pos, star.pos)) + random.randint(-2, 2))
+    # vel.scale_to_length(random.random() * math.sqrt(G * star.mass / dist(planet.pos, star.pos)))
+    # vel.scale_to_length(random.random() * 5)
+    if vel.magnitude() > C:
+        vel.scale_to_length(C)
     planet.vel = vel
     planets.append(planet)
 
 balls.add(star, *planets)
 
+ticks = 0
+particle_nums = []
 merge_times = []
 gravity_times = []
 
 game_on = True
 while game_on:
-    window.fill((0, 0, 0))
+    if not trails:
+        window.fill((0, 0, 0))
 
     for event in pygame.event.get():
         if event.type == QUIT:
             game_on = False
         elif event.type == MOUSEBUTTONDOWN:
-            paused = True
+            clicked = True
             for ball in balls:
                 if dist(ball.pos, tupleToVector2(event.pos)) < ball.radius:
                     ball.clicked = True
-                    ball.pos = tupleToVector2(event.pos)
-                    ball.stop()
         elif event.type == MOUSEBUTTONUP:
-            paused = False
+            clicked = False
             for ball in balls:
                 ball.clicked = False
         elif event.type == MOUSEMOTION:
@@ -149,7 +162,7 @@ while game_on:
                 if ball.clicked:
                     ball_clicked = True
                     ball.setPos(tupleToVector2(event.pos))
-            if paused and not ball_clicked:
+            if clicked and not ball_clicked:
                 for ball in balls:
                     ball.setPos(ball.pos + tupleToVector2(event.pos) - past_pos)
             past_pos = tupleToVector2(event.pos)
@@ -158,11 +171,15 @@ while game_on:
                 fps = 25
             elif event.key == K_RIGHT:
                 fps = 500
-            elif event.key == K_SPACE:
+            elif event.key == K_g:
                 gravity_on = not gravity_on
+            elif event.key == K_t:
+                trails = not trails
             elif event.key == K_RETURN:
                 if paused:
                     click_frame = True
+            elif event.key == K_SPACE:
+                paused = not paused
         elif event.type == KEYUP:
             if event.key == K_LEFT or event.key == K_RIGHT:
                 fps = 100
@@ -171,14 +188,20 @@ while game_on:
         start = time.perf_counter()
         handleMerges()
         merge_times.append(time.perf_counter() - start)
+        particle_nums.append(len(balls))
 
+        start = time.perf_counter()
         if gravity_on:
-            start = time.perf_counter()
             handleGravity()
-            gravity_times.append(time.perf_counter() - start)
+        gravity_times.append(time.perf_counter() - start)
             
-        balls.update()
+        for ball in balls:
+            if ball.clicked:
+                ball.stop()
+            else:
+                ball.update()
         click_frame = False
+        ticks += 1
 
     # Drawing the Schwarzschild Radius of the star
     # pygame.draw.circle(window, (50, 50, 50, 0.5), star.pos, 2 * G * star.mass / C ** 2, width=5)
@@ -187,5 +210,32 @@ while game_on:
     pygame.display.update()
     clock.tick(fps)
 
+pygame.quit()
+
 print("Average Merge Time: {}".format(sum(merge_times) / len(merge_times)))
 print("Average Gravity Time: {}".format(sum(gravity_times) / len(gravity_times)))
+plot_diagnostics = True
+if plot_diagnostics:
+    particle_nums = np.array(particle_nums)
+    merge_times = np.array(merge_times)
+    gravity_times = np.array(gravity_times)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    fig.set(figwidth=10, figheight=6)
+    x = np.arange(0, ticks, 1)
+    ax1.plot(x, merge_times * 1000, color="red", label="Merge Time")
+    ax1.plot(x, gravity_times * 1000, color="blue", label="Gravity Time")
+    ax1.set_yscale("log")
+    ax1.set_xlabel("Ticks")
+    ax1.set_ylabel("Time (MS)")
+    ax1.legend()
+
+    ax2.plot(particle_nums, merge_times * 1000, color="red", label="Merge Time")
+    ax2.plot(particle_nums, gravity_times * 1000, color="blue", label="Gravity Time")
+    ax2.set_xlabel("Number of Bodies")
+    ax2.set_ylabel("Time (MS)")
+    ax2.legend()
+
+    fig.suptitle("Simulation Diagnostics ({} Bodies)".format(len(planets) + 1))
+    fig.tight_layout()
+    plt.show()
