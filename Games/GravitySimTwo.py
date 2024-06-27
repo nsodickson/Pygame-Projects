@@ -98,6 +98,7 @@ def handleGravity():
             if center.vel.magnitude() > C:
                 center.vel.scale_to_length(C)
 
+# Window and Clock Setup
 width, height = 800, 800
 window = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
