@@ -66,9 +66,9 @@ def handleMerges():
             satellite = satellites[n]
             radius = dist(center.pos, satellite.pos)
             if radius < center.radius + satellite.radius:
+                center.vel = (center.mass * center.vel + satellite.mass * satellite.vel) / (center.mass + satellite.mass)
                 center.setMass(center.mass + satellite.mass)
                 center.setRadius(math.sqrt(center.radius ** 2 + satellite.radius ** 2))
-                center.vel = (center.mass * center.vel + satellite.mass * satellite.vel) / (center.mass + satellite.mass)
                 balls.remove(satellite)
                 satellites.remove(satellite)
                 centers.remove(satellite)
@@ -83,20 +83,20 @@ def handleGravity():
             center = centers[i]
             satellite = satellites[n]
             radius = dist(center.pos, satellite.pos)
-            
-            mag = G * center.mass * satellite.mass / radius ** 2
+            if radius > center.radius:
+                mag = G * center.mass * satellite.mass / radius ** 2
 
-            dir1 = center.pos - satellite.pos
-            dir1.scale_to_length(mag / satellite.mass)
-            satellite.vel += dir1
-            if satellite.vel.magnitude() > C:
-                satellite.vel.scale_to_length(C)
+                dir1 = center.pos - satellite.pos
+                dir1.scale_to_length(mag / satellite.mass)
+                satellite.vel += dir1
+                if satellite.vel.magnitude() > C:
+                    satellite.vel.scale_to_length(C)
 
-            dir2 = satellite.pos - center.pos
-            dir2.scale_to_length(mag / center.mass)
-            center.vel += dir2
-            if center.vel.magnitude() > C:
-                center.vel.scale_to_length(C)
+                dir2 = satellite.pos - center.pos
+                dir2.scale_to_length(mag / center.mass)
+                center.vel += dir2
+                if center.vel.magnitude() > C:
+                    center.vel.scale_to_length(C)
 
 # Window and Clock Setup
 width, height = 800, 800
@@ -110,7 +110,9 @@ paused = False
 clicked = False
 click_frame = False
 gravity_on = True
+merge_on = True
 trails = False
+plot_diagnostics = False
 
 # Constants
 G = 1
@@ -140,6 +142,7 @@ particle_nums = []
 merge_times = []
 gravity_times = []
 
+pygame.display.set_caption("N-Body Simulation (Diagnostics {})".format("On" if plot_diagnostics else "Off"))
 game_on = True
 while game_on:
     if not trails:
@@ -176,6 +179,11 @@ while game_on:
                 gravity_on = not gravity_on
             elif event.key == K_t:
                 trails = not trails
+            elif event.key == K_d:
+                plot_diagnostics = not plot_diagnostics
+                pygame.display.set_caption("N-Body Simulation (Diagnostics {})".format("On" if plot_diagnostics else "Off"))
+            elif event.key == K_m:
+                merge_on = not merge_on
             elif event.key == K_RETURN:
                 if paused:
                     click_frame = True
@@ -187,7 +195,8 @@ while game_on:
     
     if not paused or click_frame:
         start = time.perf_counter()
-        handleMerges()
+        if merge_on:
+            handleMerges()
         merge_times.append(time.perf_counter() - start)
         particle_nums.append(len(balls))
 
@@ -211,11 +220,16 @@ while game_on:
     pygame.display.update()
     clock.tick(fps)
 
+    # For comparison to barnes-hut algorithm
+    """
+    if ticks > 100:
+        game_on = False
+    """
+
 pygame.quit()
 
 print("Average Merge Time: {}".format(sum(merge_times) / len(merge_times)))
 print("Average Gravity Time: {}".format(sum(gravity_times) / len(gravity_times)))
-plot_diagnostics = True
 if plot_diagnostics:
     particle_nums = np.array(particle_nums)
     merge_times = np.array(merge_times)
