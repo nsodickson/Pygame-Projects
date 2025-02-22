@@ -88,6 +88,7 @@ class BottomPipe(pygame.sprite.Sprite):
 
 width, height = 1200, 800
 window = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Flappy Bird")
 bg_img = pygame.image.load("Assets/flappy-bg.jpeg")
 bg_img = pygame.transform.scale(bg_img, (width, height))
 bg_x = 0
@@ -144,7 +145,7 @@ def run():
             if pipe.pos.x + 80 < 0:
                 pipes.remove(pipe)
 
-        bg_x = (bg_x - speed * 1.1) % width
+        bg_x = (bg_x - speed * 0.8) % width
         window.blit(bg_img, (bg_x, 0))
         window.blit(bg_img, (bg_x - width, 0))
         bird.draw(window)

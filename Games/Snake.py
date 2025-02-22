@@ -10,6 +10,7 @@ w, h = 600, 600
 grid_w, grid_h = 50, 50
 size_w, size_h = w // grid_w, h // grid_h
 screen = pygame.display.set_mode((w, h))
+pygame.display.set_caption("Snake")
 font = pygame.font.SysFont(None, 25)
 
 # Creating the snake

@@ -101,6 +101,7 @@ def handleGravity():
 # Window and Clock Setup
 width, height = 800, 800
 window = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Gravity Simulation 2")
 clock = pygame.time.Clock()
 fps = 100
 past_pos = pygame.Vector2(0, 0)

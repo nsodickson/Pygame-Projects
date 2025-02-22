@@ -12,6 +12,7 @@ width = 1000
 height = 750
 bg_color = (0, 0, 255)
 window = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Pong")
 window.fill(bg_color)
 fps = pygame.time.Clock()
 

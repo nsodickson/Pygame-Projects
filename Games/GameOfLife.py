@@ -11,6 +11,7 @@ cells = [[0 for i in range(w // cell_size)] for n in range(h // cell_size)]
 rects_to_update = []
 
 screen = pygame.display.set_mode((w, h))
+pygame.display.set_caption("Conway's Game of Life")
 screen.fill((0, 0, 0))
 
 clock = pygame.time.Clock()

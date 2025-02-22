@@ -34,6 +34,7 @@ class Ball(pygame.sprite.Sprite):
 
 width, height = 800, 800
 window = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Gravity Simulation 1")
 ball = Ball(400, 400, 50)
 
 clock = pygame.time.Clock()
