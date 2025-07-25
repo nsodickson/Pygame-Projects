@@ -355,7 +355,7 @@ head_color = (150, 25, 250)
 apple_color = (200, 75, 10)
 
 game = Game(snake_color=snake_color, head_color=head_color, apple_color=apple_color, grid_w=25, grid_h=25, smoothness=0.75, fps=10)
-game.initialize(modes=["REVERSE"], num_apples=3)
+game.initialize(modes=[], num_apples=3)
 
 start_flag = True
 while start_flag:

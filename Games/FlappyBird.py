@@ -176,4 +176,3 @@ while True:
     window.blit(highscore, highscore_pos)
     window.blit(restart, restart_pos)
     pygame.display.update()
-    
