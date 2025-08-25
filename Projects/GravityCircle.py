@@ -30,6 +30,7 @@ window = pygame.display.set_mode((width,
 # Initializing circlular border
 border_radius = width / 2 - 50
 border_center = pygame.Vector2(width / 2, height / 2)
+border_click_radius = 5
 
 num_balls = 1
 colors = [RED for i in range(num_balls)]
@@ -51,7 +52,7 @@ for i in range(num_balls):
 """
 
 # Small deviations
-"""
+# """
 r = math.sqrt(random.random()) * border_radius - 2
 theta = random.random() * 2 * math.pi
 random_pos = pygame.Vector2(r * math.cos(theta) + border_center.x,
@@ -60,20 +61,26 @@ for i in range(num_balls):
     positions.append(random_pos + pygame.Vector2(random.random() * 0.1,
                                                  random.random() * 0.1))
     velocities.append(pygame.Vector2(0, 0))
-"""
+# """
 
 # Random positions
+"""
 for i in range(num_balls):
     r = math.sqrt(random.random()) * border_radius - radii[i]
     theta = random.random() * 2 * math.pi
     positions.append(pygame.Vector2(r * math.cos(theta) + border_center.x,
                                     r * math.sin(theta) + border_center.y))
     velocities.append(pygame.Vector2(0, 0))
+"""
 
 paused = False
 click_frames = 0
+base_fps = fps
+fast_fps = 1000
+slow_fps = 100
 past_pos = tupleToVector2(pygame.mouse.get_pos())
 clicked_idx = None
+border_clicked = False
 damping = 1.0
 radius_damping = 1.0
 
@@ -89,17 +96,36 @@ while game_on:
                 paused = not paused
             elif event.key == K_RETURN and paused:
                 click_frames = 10
+            elif event.key == K_RIGHT:
+                fps = fast_fps
+            elif event.key == K_LEFT:
+                fps = slow_fps
+            elif event.key == K_DOWN:
+                border_radius = max(10, border_radius - 10)
+            elif event.key == K_UP:
+                border_radius += 10
+        elif event.type == KEYUP:
+            if event.key == K_RIGHT or event.key == K_LEFT:
+                fps = base_fps
         elif event.type == MOUSEBUTTONDOWN:
-            for i in range(num_balls):
-                if (tupleToVector2(event.pos) - positions[i]).magnitude() < radii[i]:
-                    clicked_idx = i
-                    velocities[i] = pygame.Vector2(0, 0)
-                    break
+            event_pos = tupleToVector2(event.pos)
+            if (event_pos - border_center).magnitude() < border_click_radius:
+                border_clicked = True
+            if not border_clicked:
+                for i in range(num_balls):
+                    if (event_pos - positions[i]).magnitude() < radii[i]:
+                        clicked_idx = i
+                        velocities[i] = pygame.Vector2(0, 0)
+                        break
         elif event.type == MOUSEMOTION:
-            if clicked_idx is not None:
-                positions[clicked_idx] += tupleToVector2(event.pos) - past_pos
-            past_pos = tupleToVector2(event.pos)
+            event_pos = tupleToVector2(event.pos)
+            if border_clicked:
+                border_center += event_pos - past_pos
+            elif clicked_idx is not None:
+                positions[clicked_idx] += event_pos - past_pos
+            past_pos = event_pos
         elif event.type == MOUSEBUTTONUP:
+            border_clicked = False
             clicked_idx = None
     
     if not paused or click_frames > 0:
@@ -128,15 +154,14 @@ while game_on:
                 positions[i] = pygame.Vector2(border_x + border_center.x - sign(border_pos.x) * radii[i] * abs(math.cos(angle)),
                                               border_y + border_center.y - sign(border_pos.y) * radii[i] * abs(math.sin(angle)))
 
-        
         click_frames = max(click_frames - 1, 0)
 
-    pygame.draw.circle(window, GREEN, border_center, border_radius, 2)
     for i in range(num_balls):
         pygame.draw.circle(window, colors[i], positions[i], radii[i])
+    pygame.draw.circle(window, GREEN, border_center, border_radius, 2)
+    pygame.draw.circle(window, GREEN, border_center, border_click_radius)
 
     # Debug 
-    """
     for i in range(num_balls):
         # Update velocity
         border_pos = positions[i] - border_center  # Position relative to the border center
@@ -147,18 +172,17 @@ while game_on:
         norm = pygame.Vector2(norm_x, norm_y)
         angle = math.atan(-1 * border_pos.y / border_pos.x)  # Angle relative to border center
 
-        collision_point = pygame.Vector2(border_x + border_center.x, border_y + border_center.x)
+        collision_point = pygame.Vector2(border_x + border_center.x, border_y + border_center.y)
         pygame.draw.circle(window, GREEN, collision_point, 5)
-        pygame.draw.line(window, BLUE, collision_point, collision_point + norm * 10)
+        pygame.draw.line(window, BLUE, collision_point, collision_point + norm * 100)
         pygame.draw.line(window, BLUE, positions[i], positions[i] + 100 * velocities[i])
 
         angle_img = font.render("Angle: {:.2f}".format(math.degrees(angle)), True, RED)
         x_img = font.render("Border X: {:.2f}".format(border_pos.x), True, RED)
         y_img = font.render("Border Y: {:.2f}".format(border_pos.y), True, RED)
-        window.blit(angle_img, (5, 5))
-        window.blit(x_img, (5, 25))
-        window.blit(y_img, (5, 45))
-    """
+        # window.blit(angle_img, (5, 5))
+        # window.blit(x_img, (5, 25))
+        # window.blit(y_img, (5, 45))
 
     pygame.display.update()
     clock.tick(fps)
