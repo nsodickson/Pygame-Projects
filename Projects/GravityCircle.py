@@ -32,9 +32,9 @@ border_radius = width / 2 - 50
 border_center = pygame.Vector2(width / 2, height / 2)
 border_click_radius = 5
 
-num_balls = 1
+num_balls = 25
 colors = [RED for i in range(num_balls)]
-radii = [10 for i in range(num_balls)]
+radii = [2 for i in range(num_balls)]
 positions = []
 velocities = []
 
@@ -174,8 +174,8 @@ while game_on:
 
         collision_point = pygame.Vector2(border_x + border_center.x, border_y + border_center.y)
         pygame.draw.circle(window, GREEN, collision_point, 5)
-        pygame.draw.line(window, BLUE, collision_point, collision_point + norm * 100)
-        pygame.draw.line(window, BLUE, positions[i], positions[i] + 100 * velocities[i])
+        pygame.draw.line(window, BLUE, collision_point, collision_point + norm * 10)
+        pygame.draw.line(window, BLUE, positions[i], positions[i] + 10 * velocities[i])
 
         angle_img = font.render("Angle: {:.2f}".format(math.degrees(angle)), True, RED)
         x_img = font.render("Border X: {:.2f}".format(border_pos.x), True, RED)

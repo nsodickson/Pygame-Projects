@@ -3,6 +3,9 @@ from pygame.locals import *
 import random
 import math
 
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
 # Initializing Pygame and Pygame Window
 pygame.init()
 w, h = 1000, 500
@@ -15,21 +18,22 @@ clock = pygame.time.Clock()
 bg_color = (255, 255, 255)
 poly_color = (255, 174, 66)
 font_color = (0, 0, 0)
-polygons = [[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], 
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], 
-            [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]]
-circles = [(250, 250),
-           (250, 150),
-           (325, 200),
-           (325, 300),
-           (250, 350),
-           (175, 300),
-           (175, 200)]
-circle_radius = 40
+
+main_center = (250, 250)
+radius = 50
+
+centers = [main_center]
+for i in range(6):
+    centers.append((main_center[0] + (math.sqrt(3) + 0.1) * radius * math.sin(math.pi / 3 * i), 
+                    main_center[1] + (math.sqrt(3) + 0.1) * radius * math.cos(math.pi / 3 * i)))
+
+polygons = []
+for center in centers:
+    polygons.append([])
+    for i in range(6):
+        polygons[-1].append((center[0] + radius * math.cos(math.pi / 3 * i), 
+                             center[1] + radius * math.sin(math.pi / 3 * i)))
+        
 reset_button = pygame.Rect(350, 15, 125, 30)
 
 # Integer and Boolean flags for multi-frame actions
@@ -69,7 +73,7 @@ def isPanogram(key, letter_queue):
     return True
 
 # Obtain master word and letter list
-with open("words_large.txt") as f:
+with open("words_medium.txt") as f:
     word_key = f.read().split("\n")
 vowels = "aeiou"
 consonants = "bcdfghjklmnpqrstvwxyz"
@@ -130,8 +134,8 @@ while True:
             
             # Handling clicking the new game button or a letter
             elif event.type == MOUSEBUTTONDOWN:
-                for letter, center in zip(letters, circles):
-                    if dist(center, event.pos) < circle_radius:
+                for letter, center in zip(letters, centers):
+                    if dist(center, event.pos) < math.sqrt(3) / 2 * radius:
                         letter_queue += letter
                 if reset_button.collidepoint(event.pos):
                     gameOn = False
@@ -160,8 +164,9 @@ while True:
         win.blit(letter_queue_surf, (250 - letter_queue_size[0] / 2, 50))
         
         # Drawing the letters
-        for letter, center in zip(letters, circles):
-            pygame.draw.circle(win, poly_color, center, circle_radius)
+        for letter, polygon, center in zip(letters, polygons, centers):
+            pygame.draw.polygon(win, poly_color, polygon)
+            pygame.draw.polygon(win, BLACK, polygon, 3)
             letter_surf = font.render(letter, True, font_color)
             letter_size = font.size(letter)
             win.blit(letter_surf, (center[0] - letter_size[0] / 2, center[1] - letter_size[1] / 2))

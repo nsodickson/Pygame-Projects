@@ -90,7 +90,6 @@ while gameOn:
     
     pygame.time.wait(max(50, 80 - 2 * score))
 
-
 while gameOver:
     for event in pygame.event.get():
         if event.type == QUIT:

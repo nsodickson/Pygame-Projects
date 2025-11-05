@@ -1,3 +1,4 @@
+import time
 import pygame
 from pygame.locals import *
 import numpy as np
@@ -26,6 +27,10 @@ class Grid():
         self.gh = gh
         self.grid = np.zeros((self.gh, self.gw))
 
+        # Efficiency Tracking
+        self.convolve_times = np.empty(0)
+        self.index_times = np.empty(0)
+
     def get_border(self):
         return np.concatenate([self.grid[:-1, 0],
                                self.grid[0, :-1],
@@ -39,16 +44,54 @@ class Grid():
         self.grid = np.pad(self.grid, n)
     
     def apply_rules(self):
+        start = time.perf_counter()
         neighbors = signal.convolve2d(self.grid, KERNEL, mode="same")
+        self.convolve_times = np.append(self.convolve_times, time.perf_counter() - start)
+
+        start = time.perf_counter()
         birth_flag = np.logical_or(neighbors == 3, False)
         death_flag = np.logical_or(neighbors < 2, neighbors > 3)
         self.grid[birth_flag] = 1
         self.grid[death_flag] = 0
-    
+        self.index_times = np.append(self.index_times, time.perf_counter() - start)
+
+    def apply_rules_optimized(self, depth=10):
+        grid_copy = np.pad(self.grid, 1)  # Check a padded copy of the grid and apply changes to the original grid
+        self._apply_rules_optimized(grid_copy, 1, self.gw + 1, 1, self.gh + 1, depth=depth)
+
+    def _apply_rules_optimized(self, grid_copy, left, right, top, bottom, depth=10):
+        if depth == 0 or right - left <= 1 or bottom - top <= 1:
+            start = time.perf_counter()
+            neighbors = signal.convolve2d(grid_copy[top - 1:bottom + 1, left - 1:right + 1], KERNEL, mode="same")[1:-1, 1:-1]
+            self.convolve_times = np.append(self.convolve_times, time.perf_counter() - start)
+
+            start = time.perf_counter()
+            birth_flag = np.logical_or(neighbors == 3, False)
+            death_flag = np.logical_or(neighbors < 2, neighbors > 3)
+            self.grid[top - 1:bottom - 1, left - 1:right - 1][birth_flag] = 1
+            self.grid[top - 1:bottom - 1, left - 1:right - 1][death_flag] = 0
+            self.index_times = np.append(self.index_times, time.perf_counter() - start)
+        else:
+            vertical_mid = top + (bottom - top) // 2
+            horizontal_mid = left + (right - left) // 2
+            if grid_copy[top - 1:vertical_mid + 1, left - 1:horizontal_mid + 1].any():
+                self._apply_rules_optimized(grid_copy, left, horizontal_mid, top, vertical_mid, depth=depth - 1)
+            if grid_copy[top - 1:vertical_mid + 1, horizontal_mid - 1:right + 1].any():
+                self._apply_rules_optimized(grid_copy, horizontal_mid, right, top, vertical_mid, depth=depth - 1)
+            if grid_copy[vertical_mid - 1:bottom + 1, left - 1:horizontal_mid + 1].any():
+                self._apply_rules_optimized(grid_copy, left, horizontal_mid, vertical_mid, bottom, depth=depth - 1)
+            if grid_copy[vertical_mid - 1:bottom + 1, horizontal_mid - 1:right + 1].any():
+                self._apply_rules_optimized(grid_copy, horizontal_mid, right, vertical_mid, bottom, depth=depth -1)
+
     def step(self):
-        self.apply_rules()
         if self.get_border().any():
             self.expand()
+        self.apply_rules()
+
+    def step_optimized(self, depth=10):
+        if self.get_border().any():
+            self.expand()
+        self.apply_rules_optimized(depth=depth)
     
     def draw(self, 
              surf: pygame.Surface,
@@ -70,20 +113,19 @@ class Grid():
         top = center_y - _gh // 2
         right = center_x + _gw // 2
         bottom = center_y + _gh // 2
-        for i in range(_gw):
-            for n in range(_gh):
-                x = left + i
-                y = top + n
+        for i in range(_gh):
+            for n in range(_gw):
+                x = left + n
+                y = top + i
                 if 0 <= x < self.gw and 0 <= y < self.gh:
                     if visualize_neighbors:
                         cell = neighbors[y, x]
                         color_value = 255 * cell / 8
                         color = (color_value, color_value, color_value)
-                        pygame.draw.rect(surf, color, (i * cell_size, n * cell_size, cell_size, cell_size))
                     else:
                         cell = self.grid[y, x]
                         color = WHITE if cell else BLACK
-                        pygame.draw.rect(surf, color, (i * cell_size, n * cell_size, cell_size, cell_size))
+                    pygame.draw.rect(surf, color, (n * cell_size, i * cell_size, cell_size, cell_size))
         if draw_grid:
             if full_grid:
                 grid_left = 0
@@ -129,18 +171,22 @@ cell_size = even_divisors[divisor_idx]
 gw, gh = w // cell_size, h // cell_size
 grid = Grid(gw, gh)
 
-print(even_divisors)
+print(gw, gh)
 
 clock = pygame.time.Clock()
 fps = 100
 
+optimized = False
+optim_depth = 3
 draw_grid = True
 full_grid = True
 visualize_neighbors = False
 running = False
 clicked = False
 moved = False
-pygame.display.set_caption("Conway's Game of Life (Paused)")
+pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                            optim_depth))
 
 past_pos = tupleToVector2(pygame.mouse.get_pos())
 offset = pygame.Vector2()
@@ -148,7 +194,10 @@ offset = pygame.Vector2()
 sim_on = True
 while sim_on:
     if running:
-        grid.step()
+        if optimized:
+            grid.step_optimized(depth=optim_depth)
+        else:
+            grid.step()
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -199,7 +248,9 @@ while sim_on:
         elif event.type == KEYDOWN:
             if event.key == K_SPACE:
                 running = not running
-                pygame.display.set_caption("Conway's Game of Life ({})".format("Running" if running else "Paused"))
+                pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                                            optim_depth))
             elif event.key == K_UP:
                 if divisor_idx > 1:
                     offset *= even_divisors[divisor_idx - 1] / even_divisors[divisor_idx]
@@ -213,7 +264,33 @@ while sim_on:
                 cell_size = even_divisors[divisor_idx]
                 gw, gh = w // cell_size, h // cell_size
             elif event.key == K_RIGHT:
-                grid.step()
+                if optimized:
+                    grid.step_optimized(depth=optim_depth)
+                else:
+                    grid.step()
+            elif event.key == K_w:
+                optim_depth += 1
+                pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                                            optim_depth))
+            elif event.key == K_t:
+                print("Average Convolution Time: {:.5f}, Average Index Time: {:.5f}".format(np.mean(grid.convolve_times), np.mean(grid.index_times)))
+                print("Total Convolution Time: {:.5f}, Total Index Time: {:.5f}".format(np.sum(grid.convolve_times), np.sum(grid.index_times)))
+            elif event.key == K_o:
+                optimized = not optimized
+                pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                                            optim_depth))
+            elif event.key == K_a:  # Auto depth mode
+                optim_depth = grid.gw // 400
+                pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                                            optim_depth))
+            elif event.key == K_s:
+                optim_depth = max(0, optim_depth - 1)
+                pygame.display.set_caption("Conway's Game of Life ({}, {}, Optimization Depth = {})".format("Running" if running else "Paused",
+                                                                                                            "Optimized" if optimized else "Unoptimized",
+                                                                                                            optim_depth))
             elif event.key == K_f:
                 full_grid = not full_grid
             elif event.key == K_g:
@@ -222,6 +299,8 @@ while sim_on:
                 offset = pygame.Vector2(0, 0)
             elif event.key == K_n:
                 visualize_neighbors = not visualize_neighbors
+
+    # print(grid.grid.sum() / (grid.gw * grid.gh))
 
     grid.draw(window, 
               gw, 
